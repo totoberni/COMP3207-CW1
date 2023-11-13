@@ -8,19 +8,19 @@ import json
 with open('local.settings.json') as settings_file:
     settings = json.load(settings_file)
 MyCosmos = cosmos_client.CosmosClient.from_connection_string(settings['Values']['AzureCosmosDBConnectionString'])
-TreeHuggersDBProxy = MyCosmos.get_database_client(settings['Values']['DatabaseName'])
-PlayerContainerProxy = TreeHuggersDBProxy.get_container_client(settings['Values']['PlayerContainerName'])
+QuiplashDBProxy = MyCosmos.get_database_client(settings['Values']['DatabaseName'])
+PlayerContainerProxy = QuiplashDBProxy.get_container_client(settings['Values']['PlayerContainerName'])
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
-    req_body = req.get_json()
-    logging.info('Python HTTP trigger function processed a request:{}'.format(req_body))
     
     # Parse the request body (check incorrect format)
     try:
+        req_body = req.get_json()
         method = req.method
         username = req_body.get("username")
         password = req_body.get("password")
+        logging.info('Python HTTP trigger function processed a request:{}'.format(req_body))
     except:
         return func.HttpResponse("Invalid JSON format in the request body.",status_code=400)
     

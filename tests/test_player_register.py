@@ -15,8 +15,8 @@ class TestPlayerRegisterFunction(unittest.TestCase):
         with open('local.settings.json') as settings_file:
             settings = json.load(settings_file)
         MyCosmos = cosmos_client.CosmosClient.from_connection_string(settings['Values']['AzureCosmosDBConnectionString'])
-        TreeHuggersDBProxy = MyCosmos.get_database_client(settings['Values']['DatabaseName'])
-        PlayerContainerProxy = TreeHuggersDBProxy.get_container_client(settings['Values']['PlayerContainerName'])
+        QuiplashDBProxy = MyCosmos.get_database_client(settings['Values']['DatabaseName'])
+        PlayerContainerProxy = QuiplashDBProxy.get_container_client(settings['Values']['PlayerContainerName'])
         
         cls.client = MyCosmos
         cls.container = PlayerContainerProxy
