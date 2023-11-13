@@ -37,9 +37,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
                 # Check if username already exists
                 try:
-                    query = f"SELECT * FROM c WHERE c.username = '{username}'"
-                    items = list(PlayerContainerProxy.query_items(query=query, enable_cross_partition_query=True))
-                    if len(items) > 0 :
+                    query = "SELECT * FROM c WHERE c.username = @username"
+                    parameters = [{"name": "@username", "value": username}]
+                    players = list(PlayerContainerProxy.query_items(query=query, parameters=parameters, enable_cross_partition_query=True))
+                    if len(players) > 0 :
                         return func.HttpResponse(json.dumps({"result": False, "msg": "Username already exists"}), status_code=400)
                 except Exception as e: #catching this exception avoids crashing when adding two of the same username
                     logging.error("An error occurred: %s", str(e))

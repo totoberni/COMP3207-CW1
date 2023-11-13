@@ -17,9 +17,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     # Parse the request body (check incorrect format)
     try:
         req_body = req.get_json()
+        print("-----TEST----",json.dumps(req_body))
         method = req.method
         username = req_body.get("username")
+        print("-----TEST----",username)
         password = req_body.get("password")
+        print("-----TEST----",password)
         logging.info('Python HTTP trigger function processed a request:{}'.format(req_body))
     except:
         return func.HttpResponse("Invalid JSON format in the request body.",status_code=400)
