@@ -24,36 +24,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     except:
         return func.HttpResponse("Invalid JSON format in the request body.",status_code=400)
     
-    if method == "GET":
-        try:
-
-            # Query CosmosDB to find the player
-            query = "SELECT * FROM c WHERE c.username = @username"
-            parameters = [{"name": "@username", "value": username}]
-            players = list(PlayerContainerProxy.query_items(query=query, parameters=parameters, enable_cross_partition_query=True))
-            #Check if username has been retrieved
-            if not players:
-                return func.HttpResponse(json.dumps({"result": False, "msg": "Username or password incorrect"}), status_code=400)
-
-            # Retrieve the stored password
-            stored_password = players[0]['password']
-
-            # Compare the input password with the stored password
-            if password == stored_password:
-                return func.HttpResponse(json.dumps({"result": True, "msg": "OK"}), status_code=200)
-            else:
-                return func.HttpResponse(json.dumps({"result": False, "msg": "Username or password incorrect"}), status_code=400)
-
-        # Exceptional exceptions
-        except Exception as e:
-            logging.error("An error occurred: %s", str(e))
-            logging.stack_trace(e)
-            return func.HttpResponse(f"An error occurred: {str(e)}", status_code=500)
-
-    elif method == "POST":
+    if method == "POST":
             try:
-                 
-
+                
                 # Validate username and password
                 if len(username) < 4 or len(username) > 14:
                     return func.HttpResponse(json.dumps({"result": False, "msg": "Username less than 4 characters or more than 14 characters"}), status_code=400)
@@ -81,5 +54,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 logging.error("An error occurred: %s", str(e))
                 logging.stack_trace(e)
                 return func.HttpResponse(f"Unknown error occurred: {str(e)}",status_code=500)
-
+    
+    #if method is not POST then return error
     return func.HttpResponse("Request method not supported.", status_code=405)
