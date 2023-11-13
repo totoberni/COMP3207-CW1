@@ -77,7 +77,35 @@ class TestPlayerRegisterFunction(unittest.TestCase):
         response = requests.post(self.TEST_URL, json=payload)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"result": False, "msg": "Username already exists"})
+    
+    def test_login_existing_user_correct_password(self):
+        # Ensure the user exists in the database
+        payload = {"username": "testuser", "password": "correctpassword"}
+        requests.post(self.TEST_URL, json=payload)
 
+        # Test GET method
+        response = requests.get(self.TEST_URL, json=payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"result": True, "msg": "OK"})
+        
+    # If user doesn't exist their password can't be incorrect or correct ;)
+    def test_login_nonexistent_user(self):
+        payload = {"username": "nonexistent", "password": "wrongpassword"}
+        response = requests.get(self.TEST_URL, json=payload)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"result": False, "msg": "Username or password incorrect"})
+
+    def test_login_existing_user_wrong_password(self):
+        # Ensure the user exists in the database
+        payload = {"username": "testuser", "password": "correctpassword"}
+        requests.post(self.TEST_URL, json=payload)
+
+        # Test GET method with wrong password
+        payload = {"username": "testuser", "password": "wrongpassword"}
+        response = requests.get(self.TEST_URL, json=payload)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"result": False, "msg": "Username or password incorrect"})
+        
     @classmethod
     def tearDownClass(cls):
         # Clean up test data from CosmosDB after tests
