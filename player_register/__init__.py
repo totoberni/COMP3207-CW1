@@ -3,18 +3,18 @@ import azure.functions as func
 from azure.cosmos import cosmos_client
 from azure.cosmos.exceptions import CosmosHttpResponseError, CosmosResourceExistsError, CosmosResourceNotFoundError
 from shared_code.Player import Player
-import os
 import json
 
-#TODO: Store keys in a better fashion
-
-# Initialize CosmosDB client
-MyCosmos = cosmos_client.CosmosClient.from_connection_string(conn_str = "AccountEndpoint=https://ab3u21.documents.azure.com:443/;AccountKey=lp7TSQlsQQpNBm9sSpesrtmMavv5UHENWaxGngRVrn2X5cgEMsAsStZ6H0yR7lhlRDD9AK6vxnLRACDbfOXg0A==;")
-QuiplashDBProxy = MyCosmos.get_database_client(database = "quiplash")
-PlayerContainerProxy = QuiplashDBProxy.get_container_client(container = "player")
+# Initialize CosmosDB client using the local.settings file information
+with open('local.settings.json') as settings_file:
+    settings = json.load(settings_file)
+MyCosmos = cosmos_client.CosmosClient.from_connection_string(settings['Values']['AzureCosmosDBConnectionString'])
+TreeHuggersDBProxy = MyCosmos.get_database_client(settings['Values']['DatabaseName'])
+PlayerContainerProxy = TreeHuggersDBProxy.get_container_client(settings['Values']['PlayerContainerName'])
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Python HTTP trigger function processed a request.')
+    req_body = req.get_json()
+    logging.info('Python HTTP trigger function processed a request:{}'.format(req_body))
     
     ##Determine HTTP method
     method = req.method
@@ -26,10 +26,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     elif method == "POST":
             try:
                 # Parse the request body
-                req_body = req.get_json()
-                username = req_body.get("username")
-                password = req_body.get("password")
-
+                try:
+                    username = req_body.get("username")
+                    password = req_body.get("password")
+                except:
+                    return func.HttpResponse("Invalid JSON format in the request body.",status_code=400) 
 
                 # Validate username and password
                 if len(username) < 4 or len(username) > 14:
@@ -44,21 +45,17 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     return func.HttpResponse(json.dumps({"result": False, "msg": "Username already exists"}), status_code=400)
 
                 # If all checks pass
-                new_player = Player(id=0, username=username, password= password, games_played=0, total_score=0)
-                PlayerContainerProxy.create_item(new_player.to_dict(), enable_automatic_id_generation=True)
-                return func.HttpResponse(json.dumps({"result": True, "msg": "OK"}), mimetype="application/json")
-                #hash password for big security #hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-                
-            #Request body is not accepable    
-            except ValueError as e:
-                logging.error({str(e)})
-                logging.stack_trace(e)
-                return func.HttpResponse(
-                    "Invalid JSON format in the request body.",
-                    status_code=400
-                )
+                try:
+                    new_player = Player(id=0, username=username, password= password, games_played=0, total_score=0)
+                    PlayerContainerProxy.create_item(new_player.to_dict(), enable_automatic_id_generation=True)
+                    return func.HttpResponse(json.dumps({"result": True, "msg": "OK"}), mimetype="application/json")
+                    #hash password for big security 
+                    
+                except:
+                    Exception("There was an error in creating or adding the player", status_code=500)
+            
             #Error in processing HTTP response
-            except CosmosHttpResponseError as e:
+            except Exception as e:
                 logging.error("An error occurred: %s", str(e))
                 logging.stack_trace(e)
                 return func.HttpResponse(
