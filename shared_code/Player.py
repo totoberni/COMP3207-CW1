@@ -19,4 +19,4 @@ class Player:
                 "total_score": self.total_score}    
 
     def to_json(self):
-        return json.dumps(self.to_dict(self))    
+        return json.dumps(self.to_dict())    

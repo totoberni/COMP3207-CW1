@@ -1,15 +1,17 @@
 import logging
 import azure.functions as func
-from azure.cosmos import CosmosClient
+from azure.cosmos import cosmos_client
 from azure.cosmos.exceptions import CosmosHttpResponseError, CosmosResourceExistsError, CosmosResourceNotFoundError
-from shared_code import Player
+from shared_code.Player import Player
 import os
 import json
 
+#TODO: Store keys in a better fashion
+
 # Initialize CosmosDB client
-MyCosmos = CosmosClient.from_connection_string(os.environ['AccountEndpoint=https://ab3u21.documents.azure.com:443/;AccountKey=lp7TSQlsQQpNBm9sSpesrtmMavv5UHENWaxGngRVrn2X5cgEMsAsStZ6H0yR7lhlRDD9AK6vxnLRACDbfOXg0A==;'])
-QuiplashDBProxy = MyCosmos.get_database_client(os.environ['quiplash'])
-PlayerContainerProxy = QuiplashDBProxy.get_container_client(os.environ['player'])
+MyCosmos = cosmos_client.CosmosClient.from_connection_string(conn_str = "AccountEndpoint=https://ab3u21.documents.azure.com:443/;AccountKey=lp7TSQlsQQpNBm9sSpesrtmMavv5UHENWaxGngRVrn2X5cgEMsAsStZ6H0yR7lhlRDD9AK6vxnLRACDbfOXg0A==;")
+QuiplashDBProxy = MyCosmos.get_database_client(database = "quiplash")
+PlayerContainerProxy = QuiplashDBProxy.get_container_client(container = "player")
 
 #endpoint = os.environ["CosmosDB_Endpoint"]
 #key = os.environ["CosmosDB_Key"]
@@ -33,8 +35,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             try:
                 # Parse the request body
                 req_body = req.get_json()
-                username = req_body.get('username')
-                password = req_body.get('password')
+                username = req_body.get("username")
+                password = req_body.get("password")
 
 
                 # Validate username and password
@@ -47,23 +49,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 query = f"SELECT * FROM c WHERE c.username = '{username}'"
                 items = list(PlayerContainerProxy.query_items(query=query, enable_cross_partition_query=True))
                 if len(items) > 0 :
-                    raise CosmosResourceExistsError
-
+                    return func.HttpResponse(json.dumps({"result": False, "msg": "Username already exists"}), status_code=400)
 
                 # If all checks pass
                 #hash password for big security
                 #hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
                 new_player = Player(id=0, username=username, password= password, games_played=0, total_score=0)
-                logging.info('player created')
                 PlayerContainerProxy.create_item(new_player.to_dict(), enable_automatic_id_generation=True)
-                logging.info('player added')
                 return func.HttpResponse(json.dumps({"result": True, "msg": "OK"}), mimetype="application/json")
-            
-            #Same usernames    
-            except CosmosResourceExistsError as e:
-                logging.error({str(e)})
-                logging.stack_trace(e)
-                return func.HttpResponse(json.dumps({"result": False, "msg": "Username already exists"}), status_code=400)
             
             #Request body is not accepable    
             except ValueError as e:
