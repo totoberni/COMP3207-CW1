@@ -13,14 +13,6 @@ MyCosmos = cosmos_client.CosmosClient.from_connection_string(conn_str = "Account
 QuiplashDBProxy = MyCosmos.get_database_client(database = "quiplash")
 PlayerContainerProxy = QuiplashDBProxy.get_container_client(container = "player")
 
-#endpoint = os.environ["CosmosDB_Endpoint"]
-#key = os.environ["CosmosDB_Key"]
-#client = CosmosClient(endpoint, credential=key)
-
-#database_name = 'quiplash'
-#container_name = 'player'
-#container = client.get_database_client(database_name).get_container_client(container_name)
-
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
     
@@ -52,12 +44,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     return func.HttpResponse(json.dumps({"result": False, "msg": "Username already exists"}), status_code=400)
 
                 # If all checks pass
-                #hash password for big security
-                #hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
                 new_player = Player(id=0, username=username, password= password, games_played=0, total_score=0)
                 PlayerContainerProxy.create_item(new_player.to_dict(), enable_automatic_id_generation=True)
                 return func.HttpResponse(json.dumps({"result": True, "msg": "OK"}), mimetype="application/json")
-            
+                #hash password for big security #hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+                
             #Request body is not accepable    
             except ValueError as e:
                 logging.error({str(e)})
@@ -68,10 +59,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 )
             #Error in processing HTTP response
             except CosmosHttpResponseError as e:
-                #log error message
                 logging.error("An error occurred: %s", str(e))
                 logging.stack_trace(e)
-                # For any other exceptions
                 return func.HttpResponse(
                     f"Unknown error occurred: {str(e)}",
                     status_code=500
