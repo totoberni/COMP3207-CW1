@@ -12,7 +12,7 @@ QuiplashDBProxy = MyCosmos.get_database_client(settings['Values']['DatabaseName'
 PlayerContainerProxy = QuiplashDBProxy.get_container_client(settings['Values']['PlayerContainerName'])
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Python HTTP trigger function processed a request.')
+    logging.info('GET HTTP trigger function processed a request.')
     
     # Parse the request body (check incorrect format)
     try:

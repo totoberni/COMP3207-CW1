@@ -13,7 +13,7 @@ QuiplashDBProxy = MyCosmos.get_database_client(settings['Values']['DatabaseName'
 PlayerContainerProxy = QuiplashDBProxy.get_container_client(settings['Values']['PlayerContainerName'])
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Python HTTP trigger function processed a request.')
+    logging.info('POST HTTP trigger function processed a request.')
     
     
     # Parse the request body (check incorrect format)
@@ -36,11 +36,15 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     return func.HttpResponse(json.dumps({"result": False, "msg": "Password less than 10 characters or more than 20 characters"}), status_code=400)
 
                 # Check if username already exists
-                query = f"SELECT * FROM c WHERE c.username = '{username}'"
-                items = list(PlayerContainerProxy.query_items(query=query, enable_cross_partition_query=True))
-                if len(items) > 0 :
+                try:
+                    query = f"SELECT * FROM c WHERE c.username = '{username}'"
+                    items = list(PlayerContainerProxy.query_items(query=query, enable_cross_partition_query=True))
+                    if len(items) > 0 :
+                        return func.HttpResponse(json.dumps({"result": False, "msg": "Username already exists"}), status_code=400)
+                except Exception as e: #catching this exception avoids crashing when adding two of the same username
+                    logging.error("An error occurred: %s", str(e))
                     return func.HttpResponse(json.dumps({"result": False, "msg": "Username already exists"}), status_code=400)
-
+                
                 # If all checks pass
                 try:
                     new_player = Player(id=0, username=username, password= password, games_played=0, total_score=0)
@@ -54,7 +58,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             #Error in processing HTTP response
             except Exception as e:
                 logging.error("An error occurred: %s", str(e))
-                logging.stack_trace(e)
                 return func.HttpResponse(f"Unknown error occurred: {str(e)}",status_code=500)
     
     #if method is not POST then return error

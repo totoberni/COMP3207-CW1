@@ -1,6 +1,7 @@
 import unittest
 import json
 import requests
+import time
 from azure.cosmos import cosmos_client
 
 class TestPlayerUpdateFunction(unittest.TestCase):
@@ -8,6 +9,8 @@ class TestPlayerUpdateFunction(unittest.TestCase):
     TEST_UPDATE_URL='http://localhost:7071/api/player/update'
     TEST_LOGIN_URL='http://localhost:7071/api/player/login'
     PUBLIC_URL=''
+    
+    #{"username": "pisell1", "add_to_games_played": 1, add_to_score:20}
     
     @classmethod
     #setup necessary proxies using local settings information
@@ -20,19 +23,23 @@ class TestPlayerUpdateFunction(unittest.TestCase):
 
         cls.client = MyCosmos
         cls.container = PlayerContainerProxy
-    
-    def test_player_updated_correctly(self):
+
+    def test_player_updated_successfully(self):
+        # Clear the database before testing
+        for item in self.container.query_items(query="SELECT * FROM c", enable_cross_partition_query=True):
+            self.container.delete_item(item, partition_key=item['id'])
+        
         #Adding a player
-        payload = {"username":"correctusername", "password":"veryvalidpassword"}
+        payload = {"username":"porcodio", "password":"veryvalidpassword"}
         requests.post(self.TEST_REGISTER_URL, json=payload)
         
         #Updating the player
-        payload = {"username":"correctusername", "add_to_games_played": 2, "add_to_score":200}
-        response = requests.put(self.TEST_UPDATE_URL, json=payload)
+        new_payload = {"username":"porcodio", "add_to_games_played": 2, "add_to_score":200}
+        response = requests.put(self.TEST_UPDATE_URL, json=new_payload)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"result": True, "msg": "OK"})
     
-    def test_player_object_actually_updated(self):
+    def test_player_object_is_updated(self):
         # Add a player
         payload = {"username": "updatecheck", "password": "password12345"}
         requests.post(self.TEST_REGISTER_URL, json=payload)

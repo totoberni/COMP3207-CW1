@@ -11,7 +11,7 @@ QuiplashDBProxy = MyCosmos.get_database_client(settings['Values']['DatabaseName'
 PlayerContainerProxy = QuiplashDBProxy.get_container_client(settings['Values']['PlayerContainerName'])
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Python HTTP trigger function processed a request.')
+    logging.info('PUT HTTP trigger function processed a request.')
     
     # Parse the request body (check incorrect format)
     try:
@@ -24,7 +24,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     
     except Exception as e:
         logging.error(f'Error parsing JSON: {str(e)}')
-        logging.stacktrace(e)
         return func.HttpResponse("Invalid JSON format in the request body.", status_code=400)
     
     if method == "PUT":
@@ -34,9 +33,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             parameters = [{"name": "@username", "value": username}]
             players = list(PlayerContainerProxy.query_items(query=query, parameters=parameters, enable_cross_partition_query=True))
             player = players[0]
-        except Exception as e:
-            logging.error(f'Error in searching for player: {str(e)}')
-            return func.HttpResponse("Error in searching for the player", status_code=400)
+        except IndexError as e:
+            logging.error(f'IndexError thrown by search: {str(e)}')
+            
+            return func.HttpResponse(json.dumps({"result": False, "msg": "Player does not exist"}), status_code=404)
             
         #Check that we are only editing one player
         if len(players) == 0:
@@ -49,7 +49,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         try:
             player["games_played"] += games_to_add
             player["total_score"] += score_to_add
-            PlayerContainerProxy.upsert_item(player.to_dict())
+            PlayerContainerProxy.upsert_item(player)
             return func.HttpResponse(json.dumps({"result": True, "msg": "OK"}), status_code=200)
         
         except Exception as e:
